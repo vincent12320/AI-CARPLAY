@@ -77,7 +77,7 @@ export function VPAPanel() {
       if (t) ask(t);
     };
     r.onerror = () => setAvatar("idle");
-    r.onend = () => setAvatar((s) => (s === "listening" ? "idle" : s) as any);
+    r.onend = () => setAvatar("idle");
     try { r.start(); } catch { /* ignore */ }
   }
 
