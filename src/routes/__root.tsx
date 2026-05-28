@@ -77,6 +77,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "iSPACE · 智能座舱" },
       { property: "og:description", content: "iSPACE 沉浸式智能座舱 UI" },
       { property: "og:type", content: "website" },
+      { name: "twitter:title", content: "iSPACE · 智能座舱" },
+      { name: "twitter:description", content: "iSPACE 沉浸式智能座舱 UI" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4198bc22-3a2f-4270-9d51-b370de0aa13c/id-preview-69dc6474--4861851b-121e-4b3b-82d0-fb8817efebab.lovable.app-1779939229066.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4198bc22-3a2f-4270-9d51-b370de0aa13c/id-preview-69dc6474--4861851b-121e-4b3b-82d0-fb8817efebab.lovable.app-1779939229066.png" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       {
