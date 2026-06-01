@@ -1,121 +1,68 @@
-# iSPACE 智能座舱 UI 构建计划
+# iSPACE 四模块升级方案
 
-构建一个 1280×800 横屏沉浸式智能座舱界面，磨砂玻璃风格，核心交互为 VPA 助手。
+对当前车载 AI 助手界面做四处增强，全部为前端改造，不引入后端。
 
-## 一、文件结构
+---
 
-```text
-src/
-├── routes/
-│   └── index.tsx                  # 主屏（全部布局入口）
-├── components/cockpit/
-│   ├── Wallpaper.tsx              # 全屏壁纸层
-│   ├── TopStatusBar.tsx           # 顶部状态栏
-│   ├── VPAPanel.tsx               # 中部 VPA 浮层卡片
-│   ├── VPAAvatar.tsx              # 虚拟形象三态动画
-│   ├── VPAMinimized.tsx           # 最小化悬浮球
-│   ├── BottomCards/
-│   │   ├── index.tsx              # 5卡片容器
-│   │   ├── NavCard.tsx
-│   │   ├── MusicCard.tsx
-│   │   ├── VPABrandCard.tsx       # 含波形动画
-│   │   ├── VehicleCard.tsx
-│   │   └── CallCard.tsx
-│   ├── HUDBar.tsx                 # 底部 HUD 控制栏
-│   └── SettingsPanel.tsx          # 右侧滑入设置（5个 Tab）
-├── stores/
-│   ├── vpaStore.ts                # VPA 状态、对话、记忆
-│   ├── settingsStore.ts           # AI/知识库/意图/人格配置（localStorage 持久化）
-│   └── vehicleStore.ts            # 车辆模拟状态
-├── lib/
-│   ├── llm.ts                     # OpenAI 兼容流式调用
-│   ├── dify.ts                    # Dify 知识库
-│   ├── speech.ts                  # Web Speech API 封装
-│   └── intent.ts                  # JSON 规则意图识别
-└── styles.css                     # 设计令牌
-```
+## 1. 音乐卡片 — 旋转黑胶唱片
 
-## 二、设计系统（styles.css）
+文件：`src/components/cockpit/BottomCards/MusicCard.tsx` + `src/styles.css`
 
-- 主色：`--brand: #4a9fd8`，`--success: #00C853`
-- 玻璃卡片令牌：`--glass-bg: rgba(255,255,255,0.92)`、`--glass-blur: blur(20px)`
-- 字体：Noto Sans SC（通过 `<link>` 加载）
-- 圆角：卡片 16px，按钮 12px
-- 动画：`transition-all duration-300`，卡片弹入 `scale-in/fade-in`
+- 把左侧 14×14 的方形封面替换为黑胶唱片组件：
+  - 深色圆形主体（`bg-neutral-900`），叠加同心圆细线模拟纹路（用 `repeating-radial-gradient`）。
+  - 中心嵌入当前曲目封面（圆形裁切，约占直径 45%），中心点一个小圆孔。
+  - 唱片右上方放一个静态唱针图标（SVG/lucide，固定旋转角度，不随唱片转）。
+- 旋转动画：新增 `@keyframes vinyl-spin`（360° / 约 1.8s，匀速 linear，对应 ~33RPM 观感）。
+  - 播放时加 `animation-play-state: running`，暂停时切到 `paused` —— CSS 会在当前角度平滑停住，不骤停归零。
+- 尺寸与卡片高度适配（唱片直径约等于卡片内容高度，约 56–60px），整体风格偏网易云播放页。
 
-## 三、布局（index.tsx）
+## 2. 满意度反馈弹框 — 每三轮触发
 
-```text
-┌──────────────────────────────────────────────┐
-│ TopStatusBar (52px)                          │
-├──────────────────────────────────────────────┤
-│                                              │
-│        VPAPanel (居中偏上，浮层)              │
-│                                              │
-├──────────────────────────────────────────────┤
-│ BottomCards 5格 (110px)                      │
-├──────────────────────────────────────────────┤
-│ HUDBar (52px)                                │
-└──────────────────────────────────────────────┘
-  背景：Wallpaper（绝对定位 z-0）
-```
+文件：`src/stores/vpaStore.ts`、`src/components/cockpit/VPAPanel.tsx`、新增 `src/components/cockpit/FeedbackCard.tsx`
 
-所有 UI 层 `pointer-events-auto` 在玻璃卡片内，壁纸 `pointer-events-none`。
+- store 新增：`roundCount`（已完成轮数）、`showFeedback`（是否展示反馈卡）、`feedbackThanks`（是否展示感谢语）及对应 actions。
+- 计数逻辑：每次 AI 回复完整结束（`ask` 的 finally 中 pushMessage 之后）`roundCount += 1`；当 `roundCount` 达到 3 时置 `showFeedback = true`。
+- 展示位置：在第 3 轮 AI 回答文字下方、间隔一行后渲染 `FeedbackCard`（位于聊天消息流末尾）。
+- 卡片内容：标题「对本次回答是否满意？」+ 三按钮「😊 满意」「😞 不满意」「🕐 以后再说」。
+- 交互：
+  - 点击按钮触发。
+  - 语音触发——反馈卡可见时，`startVoice` 的识别结果若命中「满意/不满意/以后再说」关键词，则当作反馈选择而非新对话。
+- 选择「满意/不满意」→ 卡片替换为「感谢您的反馈！」，3 秒后自动消失；选择「以后再说」→ 直接收起、无感谢语。
+- 反馈结束后 `roundCount` 归零，进入下一个三轮周期。
+- 联动模块 4：选择「满意」后将 VPA 形态切到「开心态」数秒。
 
-## 四、VPA 核心交互
+## 3. 推荐问题 — 大模型动态生成
 
-**三种模式**（vpaStore 中 `mode: 'greeting' | 'chat' | 'intent'`）：
-- greeting：大字问候 + 角色立绘 + CTA
-- chat：左形象 + 右流式文本（打字机效果，逐字 setInterval）
-- intent：2~3 个建议气泡
+文件：`src/lib/intent.ts`（重写 `suggestFollowups` 为异步 LLM 版）、`src/lib/llm.ts`、`src/components/cockpit/VPAPanel.tsx`、`src/stores/vpaStore.ts`
 
-**虚拟形象三态**（VPAAvatar，CSS keyframes）：
-- idle：轻微 translateY 悬浮
-- listening：scale 脉冲 + 光环 ring
-- speaking：眼睛/口型缩放
+- 废弃固定池。每轮 AI 回答结束后，用「最近对话内容」作为上下文调用大模型，要求返回 4 条 JSON 推荐追问。
+  - 有 `ai.apiKey` 时走真实模型（复用 `streamChat`/新增一次性 `complete` 调用，prompt 要求严格输出 JSON 数组）；无 key 时回退到一组与关键词相关的本地候选，保证可用。
+  - 约束：与当前话题强相关、口语化、每条 ≤10 字。
+- store 新增 `suggestionsLoading` 状态。生成期间在推荐区显示加载占位（骨架胶囊 + 脉冲动画），完成后淡入替换。
+- 4 条推荐以胶囊按钮横向排列，容器 `overflow-x-auto` 支持左右滑动；点击后直接作为下一轮输入发送（复用现有 `ask`）。
 
-**语音输入**：`window.SpeechRecognition`（lang=zh-CN），降级为输入框
-**LLM 流式**：fetch + ReadableStream 解析 SSE，token 推入 messages
-**意图建议**：每次回复完成后调一次 LLM（或规则）生成 2~3 个 follow-up
-**长期记忆**：localStorage 存 `{name, preferences, anniversaries}`，注入 system prompt
+## 4. VPA 形象 — 六形态动态切换
 
-## 五、设置面板（右侧 Sheet）
+文件：`src/stores/vpaStore.ts`、`src/components/cockpit/VPAAvatar.tsx`、`src/styles.css`、`src/components/cockpit/VPAPanel.tsx`
 
-5 个 Tab：
-1. AI 连接：baseURL / apiKey / model / stream toggle
-2. 知识库：Dify endpoint / apiKey / enabled
-3. 意图识别：Monaco-less 简易 textarea JSON 编辑器 + 校验
-4. 记忆管理：列表 + 删除 + 全部清除 + 启用开关
-5. 人格设计：name / tone(select) / language / 形象（color picker）/ 问候模板
+- 扩展形态类型：`AvatarState` 由现有 3 态扩展为 6 态 `idle | thinking | speaking | happy | focus | default`：
+  | 形态 | 视觉 | 场景 |
+  |---|---|---|
+  | 待机态(idle) | 缓慢呼吸光晕、眼神柔和 | 无交互 |
+  | 思考态(thinking) | 眉头微皱、眼球上移、齿轮/波纹动效 | 生成回答中 |
+  | 说话态(speaking) | 嘴部波形律动、表情活跃 | 语音/文字播报 |
+  | 开心态(happy) | 眼睛弯月上扬、光晕扩散 | 反馈满意后 |
+  | 专注态(focus) | 眼神锐利、蓝色高亮边框 | 导航/任务执行 |
+  | 默认态(default) | 现有样式 | 通用 |
+- 自动轮播：非交互（无生成、无语音、无反馈）状态下，每 10 秒按顺序切换形态，过渡用 300ms 淡入淡出。
+- 交互优先：开始生成→thinking；播报→speaking；满意反馈→happy；触发导航/车控意图→focus 数秒；交互结束后恢复自动轮播。
+- 在 `VPAAvatar.tsx` 中按形态渲染不同眼睛/嘴/光晕/边框，新增对应 keyframes（呼吸光晕、齿轮转、波形、focus 边框辉光）到 `styles.css`。
 
-全部写入 settingsStore，持久化到 localStorage。**API Key 仅存本地**（用户自填）。
+---
 
-## 六、底部 5 个功能卡片
+## 技术说明
 
-均为静态/本地状态演示（不联真实服务）：
-- 导航：输入框 + 回家/公司按钮（toast 提示）
-- 音乐：本地播放列表，封面用 `<img>`，上一首/暂停/下一首切换 index
-- VPA 品牌卡：CSS 波形动画（10 条 div 高度变化），点击 setMode('chat')
-- 车辆：useState 模拟 476km / 80%，绿色 progress
-- 通话：绿色卡片，点击 toast
-
-## 七、HUD 控制栏
-
-纯展示 + 简单 useState（温度 24.5°、风速、锁车 toggle），lucide-react 图标。
-
-## 八、技术细节
-
-- Zustand for vpaStore / settingsStore / vehicleStore
-- shadcn 用 Sheet（设置面板）、Button、Input、Card、Tabs、Toast
-- 预览设备视口设为 1280×800
-- 不接入 Supabase / 真实后端（所有 API 由用户在设置中自填，浏览器直连）
-- 壁纸：使用 generate_image 生成默认雪山图，存 `src/assets/wallpaper-snow.jpg`
-
-## 九、需要确认的点
-
-1. **壁纸**：是否生成默认壁纸图（雪山/森林/海边各一张可切换），还是先用 CSS 渐变占位？
-2. **音乐播放**：是否需要真实 `<audio>` 播放（需要素材）还是仅 UI 演示？
-3. **VPA 虚拟形象**：用 CSS/SVG 绘制黑色圆形机器人，还是生成图片素材？
-4. **默认 LLM**：是否在设置中预填 Lovable AI Gateway，让开箱即用（需启用 Cloud 拿 LOVABLE_API_KEY，并加一个 server function 代理流式）？还是完全留空让用户填 OpenAI 兼容地址？
-
-回复后我会进入构建模式开工。
+- 全部改动限定在前端组件 / Zustand store / CSS，无新依赖、无后端。
+- 推荐问的 LLM 调用沿用现有「浏览器直连用户配置端点」机制；未配置 key 时自动回退本地候选，保证演示可用。
+- 语音关键词识别复用现有 `getRecognizer`，仅在反馈卡可见时增加一层关键词分支判断。
+- 形态轮播用单个 `setInterval`（10s）+ React state，组件卸载时清理。
