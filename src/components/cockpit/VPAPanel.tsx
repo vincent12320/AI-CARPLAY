@@ -1,56 +1,88 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, Minus, Mic, Send, Sparkles, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useVPA } from "@/stores/vpaStore";
+import { AVATAR_CYCLE } from "@/stores/vpaStore";
 import { useSettings } from "@/stores/settingsStore";
 import { mockReply, streamChat } from "@/lib/llm";
 import { getRecognizer, isSpeechSupported } from "@/lib/speech";
-import { suggestFollowups } from "@/lib/intent";
+import { detectIntent, suggestFollowups } from "@/lib/intent";
 import { VPAAvatar } from "./VPAAvatar";
 import { VPAMinimized } from "./VPAMinimized";
+import { FeedbackCard, matchFeedbackVoice, type FeedbackChoice } from "./FeedbackCard";
 
 export function VPAPanel() {
   const {
-    open, minimized, mode, avatar, messages, streaming, suggestions,
-    setOpen, setMinimized, setMode, setAvatar, pushMessage, setStreaming, setSuggestions,
+    open, minimized, mode, avatar, messages, streaming, suggestions, suggestionsLoading,
+    showFeedback, feedbackThanks,
+    setOpen, setMinimized, setMode, setAvatar, pushMessage, setStreaming,
+    setSuggestions, setSuggestionsLoading,
+    incrementRound, resetRounds, setShowFeedback, setFeedbackThanks,
   } = useVPA();
   const persona = useSettings((s) => s.persona);
   const ai = useSettings((s) => s.ai);
+  const intentRules = useSettings((s) => s.intentRules);
   const memories = useSettings((s) => s.memories);
   const memoryEnabled = useSettings((s) => s.memoryEnabled);
 
   const [showInput, setShowInput] = useState(false);
   const [text, setText] = useState("");
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // tracks whether VPA is in an active scene (suppresses auto-rotation)
+  const busyRef = useRef(false);
 
   useEffect(() => {
     scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, streaming]);
+  }, [messages, streaming, showFeedback, feedbackThanks]);
 
-  if (!open) return null;
-  if (minimized) return <VPAMinimized />;
+  // ===== auto-rotate avatar forms every 10s when idle =====
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (busyRef.current || streaming) return;
+      const cur = useVPA.getState().avatar;
+      const next = AVATAR_CYCLE[(AVATAR_CYCLE.indexOf(cur) + 1) % AVATAR_CYCLE.length];
+      setAvatar(next);
+    }, 10000);
+    return () => clearInterval(id);
+  }, [streaming, setAvatar]);
 
   const memorySystem = memoryEnabled && memories.length
     ? `已知用户长期记忆：\n${memories.map((m) => `- ${m.key}: ${m.value}`).join("\n")}\n`
     : "";
   const sysPrompt = `你是车载智能助手「${persona.name}」，语气${toneText(persona.tone)}，使用${persona.language === "zh-CN" ? "中文" : "英文"}简洁回答。${memorySystem}回答要短，1-3 句话。`;
 
-  async function ask(prompt: string) {
+  const ask = useCallback(async (prompt: string) => {
+    busyRef.current = true;
     setMode("chat");
+    // hide any pending feedback when a new round starts
+    setShowFeedback(false);
+    setFeedbackThanks(false);
     pushMessage({ role: "user", content: prompt });
     setStreaming("");
-    setAvatar("speaking");
+    setSuggestions([]);
+
+    // task intents (navigation / vehicle control) → focus form
+    const rule = detectIntent(prompt, intentRules);
+    const isTask = !!rule && (rule.action === "navigation" || rule.action === "vehicle");
+    setAvatar(isTask ? "focus" : "thinking");
+
     let full = "";
     try {
+      const history = useVPA.getState().messages;
       const gen = ai.apiKey
         ? streamChat(ai, [
             { role: "system", content: sysPrompt },
-            ...messages.map((m) => ({ role: m.role, content: m.content })),
+            ...history.map((m) => ({ role: m.role, content: m.content })),
             { role: "user", content: prompt },
           ])
         : mockReply(prompt);
+      let first = true;
       for await (const chunk of gen) {
+        if (first) {
+          if (!isTask) setAvatar("speaking");
+          first = false;
+        }
         full += chunk;
         setStreaming(full);
       }
@@ -60,10 +92,45 @@ export function VPAPanel() {
     } finally {
       pushMessage({ role: "assistant", content: full });
       setStreaming("");
-      setSuggestions(suggestFollowups(full));
       setAvatar("idle");
+      busyRef.current = false;
+
+      // round count + feedback trigger
+      incrementRound();
+      if (useVPA.getState().roundCount >= 3) {
+        setShowFeedback(true);
+      }
+
+      // dynamic follow-up suggestions
+      setSuggestionsLoading(true);
+      const recent = useVPA.getState().messages
+        .slice(-6)
+        .map((m) => `${m.role === "user" ? "用户" : "助手"}：${m.content}`)
+        .join("\n");
+      suggestFollowups(ai, recent)
+        .then((s) => setSuggestions(s))
+        .finally(() => setSuggestionsLoading(false));
     }
-  }
+  }, [ai, intentRules, sysPrompt, setMode, setShowFeedback, setFeedbackThanks, pushMessage, setStreaming, setSuggestions, setAvatar, incrementRound, setSuggestionsLoading]);
+
+  const handleFeedback = useCallback((choice: FeedbackChoice) => {
+    if (choice === "later") {
+      setShowFeedback(false);
+      resetRounds();
+      return;
+    }
+    if (choice === "satisfied") {
+      busyRef.current = true;
+      setAvatar("happy");
+      setTimeout(() => { setAvatar("idle"); busyRef.current = false; }, 3000);
+    }
+    setFeedbackThanks(true);
+    setTimeout(() => {
+      setShowFeedback(false);
+      setFeedbackThanks(false);
+      resetRounds();
+    }, 3000);
+  }, [setShowFeedback, resetRounds, setFeedbackThanks, setAvatar]);
 
   function startVoice() {
     const r = getRecognizer(persona.language);
@@ -71,13 +138,23 @@ export function VPAPanel() {
       setShowInput(true);
       return;
     }
-    setAvatar("listening");
-    r.onresult = (e: any) => {
+    const feedbackActive = useVPA.getState().showFeedback && !useVPA.getState().feedbackThanks;
+    setAvatar("listening" in r ? "thinking" : "thinking");
+    r.onresult = (e: { results?: { [k: number]: { [k: number]: { transcript?: string } } } }) => {
       const t = e.results?.[0]?.[0]?.transcript ?? "";
-      if (t) ask(t);
+      if (!t) return;
+      if (feedbackActive) {
+        const choice = matchFeedbackVoice(t);
+        if (choice) {
+          handleFeedback(choice);
+          setAvatar("idle");
+          return;
+        }
+      }
+      ask(t);
     };
     r.onerror = () => setAvatar("idle");
-    r.onend = () => setAvatar("idle");
+    r.onend = () => { if (!useVPA.getState().streaming) setAvatar("idle"); };
     try { r.start(); } catch { /* ignore */ }
   }
 
@@ -88,6 +165,9 @@ export function VPAPanel() {
     setShowInput(false);
     ask(t);
   }
+
+  if (!open) return null;
+  if (minimized) return <VPAMinimized />;
 
   return (
     <div
@@ -118,7 +198,7 @@ export function VPAPanel() {
           {mode === "chat" && (
             <div className="flex gap-4">
               <VPAAvatar state={avatar} size={88} />
-              <div ref={scrollerRef} className="max-h-[180px] flex-1 overflow-y-auto pr-2 text-sm leading-relaxed">
+              <div ref={scrollerRef} className="max-h-[200px] flex-1 overflow-y-auto pr-2 text-sm leading-relaxed">
                 {messages.map((m, i) => (
                   <div key={i} className={m.role === "user" ? "mt-2 text-right" : "mt-2"}>
                     <span className={m.role === "user"
@@ -136,6 +216,10 @@ export function VPAPanel() {
                 )}
                 {!messages.length && !streaming && (
                   <div className="text-muted-foreground">你好呀，我在听～</div>
+                )}
+                {/* satisfaction feedback (after 3 rounds) */}
+                {showFeedback && !streaming && (
+                  <FeedbackCard thanks={feedbackThanks} onSelect={handleFeedback} />
                 )}
               </div>
             </div>
@@ -155,18 +239,25 @@ export function VPAPanel() {
           )}
         </div>
 
-        {/* suggestions after chat */}
-        {mode === "chat" && !streaming && suggestions.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {suggestions.map((s) => (
-              <button
-                key={s}
-                onClick={() => ask(s)}
-                className="rounded-full bg-black/5 px-3 py-1 text-xs text-foreground transition hover:bg-black/10"
-              >
-                {s}
-              </button>
-            ))}
+        {/* dynamic follow-up suggestions after chat */}
+        {mode === "chat" && !streaming && (suggestionsLoading || suggestions.length > 0) && (
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {suggestionsLoading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="h-7 w-24 shrink-0 animate-pulse rounded-full bg-black/10"
+                  />
+                ))
+              : suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => ask(s)}
+                    className="shrink-0 whitespace-nowrap rounded-full bg-black/5 px-3 py-1 text-xs text-foreground transition hover:bg-black/10 animate-in fade-in duration-300"
+                  >
+                    {s}
+                  </button>
+                ))}
           </div>
         )}
 
