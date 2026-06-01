@@ -139,7 +139,7 @@ export function VPAPanel() {
       return;
     }
     const feedbackActive = useVPA.getState().showFeedback && !useVPA.getState().feedbackThanks;
-    setAvatar("listening" in r ? "thinking" : "thinking");
+    setAvatar("thinking");
     r.onresult = (e: { results?: { [k: number]: { [k: number]: { transcript?: string } } } }) => {
       const t = e.results?.[0]?.[0]?.transcript ?? "";
       if (!t) return;
