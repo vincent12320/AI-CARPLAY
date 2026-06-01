@@ -1,5 +1,28 @@
 import type { AIConfig } from "@/stores/settingsStore";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { ChatMsg } from "@/stores/vpaStore";
+
+/** Non-streaming one-shot completion. Returns the full text (or empty string). */
+export async function complete(
+  cfg: AIConfig,
+  messages: { role: "system" | "user" | "assistant"; content: string }[],
+  signal?: AbortSignal,
+): Promise<string> {
+  if (!cfg.apiKey) return "";
+  const res = await fetch(`${cfg.baseURL.replace(/\/+$/, "")}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${cfg.apiKey}`,
+    },
+    body: JSON.stringify({ model: cfg.model, messages, stream: false }),
+    signal,
+  });
+  if (!res.ok) return "";
+  const json = await res.json();
+  return json?.choices?.[0]?.message?.content ?? "";
+}
+
 
 /**
  * OpenAI-compatible streaming chat call.
