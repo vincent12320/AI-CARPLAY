@@ -6,6 +6,8 @@ import { VPAPanel } from "@/components/cockpit/VPAPanel";
 import { BottomCards } from "@/components/cockpit/BottomCards";
 import { HUDBar } from "@/components/cockpit/HUDBar";
 import { SettingsPanel } from "@/components/cockpit/SettingsPanel";
+import { AppCenter } from "@/components/cockpit/AppCenter";
+import { VehicleSettings } from "@/components/cockpit/VehicleSettings";
 
 export const Route = createFileRoute("/")({
   head: () => ({
