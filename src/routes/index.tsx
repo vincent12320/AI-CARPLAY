@@ -32,6 +32,8 @@ function Cockpit() {
       <BottomCards />
       <HUDBar />
       <SettingsPanel />
+      <AppCenter />
+      <VehicleSettings />
       <Toaster position="top-center" />
     </div>
   );
