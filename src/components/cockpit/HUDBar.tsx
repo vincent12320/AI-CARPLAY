@@ -4,34 +4,44 @@ import {
   Volume2, Wind, Armchair, Fan,
 } from "lucide-react";
 import { useVehicle } from "@/stores/vehicleStore";
+import { useUI } from "@/stores/uiStore";
 
 void _u;
 
 export function HUDBar() {
   const { tempLeft, tempRight, fanSpeed, locked, setTempLeft, setTempRight, setFanSpeed, toggleLocked } = useVehicle();
+  const openAppCenter = useUI((s) => s.openAppCenter);
+  const openVehicleSettings = useUI((s) => s.openVehicleSettings);
+
   return (
     <div className="glass-dark mx-3 mb-3 mt-1 flex h-[48px] items-center justify-between gap-2 rounded-2xl px-4 text-white">
-      <Icon><Home className="h-4 w-4" /></Icon>
+      {/* Left: app center + vehicle settings */}
+      <div className="flex items-center gap-1.5">
+        <Icon onClick={openAppCenter} className="bg-white/10"><Grid3x3 className="h-4 w-4" /></Icon>
+        <Icon onClick={() => openVehicleSettings()} className="bg-white/10"><Car className="h-4 w-4" /></Icon>
+      </div>
 
-      <TempControl value={tempLeft} onChange={setTempLeft} />
+      {/* Center: climate controls */}
+      <div className="flex items-center gap-2">
+        <TempControl value={tempLeft} onChange={setTempLeft} />
+        <button onClick={() => setFanSpeed(fanSpeed === 7 ? 0 : fanSpeed + 1)} className="flex items-center gap-1 rounded-full px-2 py-1 text-xs hover:bg-white/10">
+          <Snowflake className="h-4 w-4" />
+          <span>{fanSpeed}</span>
+        </button>
+        <Icon><Wind className="h-4 w-4" /></Icon>
+        <Icon><Fan className="h-4 w-4" /></Icon>
+        <Icon><Armchair className="h-4 w-4" /></Icon>
+        <Icon onClick={toggleLocked}>{locked ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}</Icon>
+        <TempControl value={tempRight} onChange={setTempRight} />
+      </div>
 
-      <button onClick={() => setFanSpeed(fanSpeed === 7 ? 0 : fanSpeed + 1)} className="flex items-center gap-1 rounded-full px-2 py-1 text-xs hover:bg-white/10">
-        <Snowflake className="h-4 w-4" />
-        <span>{fanSpeed}</span>
-      </button>
-
-      <Icon><Armchair className="h-4 w-4" /></Icon>
-      <Icon onClick={toggleLocked}>{locked ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}</Icon>
-      <Icon className="bg-success text-white"><Phone className="h-4 w-4" /></Icon>
-      <Icon><Car className="h-4 w-4" /></Icon>
-      <Icon><Camera className="h-4 w-4" /></Icon>
-      <Icon><Grid3x3 className="h-4 w-4" /></Icon>
-      <Icon><Wind className="h-4 w-4" /></Icon>
-      <Icon><Fan className="h-4 w-4" /></Icon>
-
-      <TempControl value={tempRight} onChange={setTempRight} />
-
-      <Icon><Volume2 className="h-4 w-4" /></Icon>
+      {/* Right: shortcuts */}
+      <div className="flex items-center gap-1.5">
+        <Icon><Home className="h-4 w-4" /></Icon>
+        <Icon className="bg-success text-white"><Phone className="h-4 w-4" /></Icon>
+        <Icon><Camera className="h-4 w-4" /></Icon>
+        <Icon><Volume2 className="h-4 w-4" /></Icon>
+      </div>
     </div>
   );
 }
