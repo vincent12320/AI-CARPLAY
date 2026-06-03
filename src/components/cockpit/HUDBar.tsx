@@ -322,14 +322,6 @@ function Icon({ children, className = "", onClick }: { children: React.ReactNode
   );
 }
 
-function IconBtn({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span className={`grid h-8 w-8 cursor-pointer place-items-center rounded-full transition hover:bg-white/15 ${className}`}>
-      {children}
-    </span>
-  );
-}
-
 function TempControl({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <div className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs">
