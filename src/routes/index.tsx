@@ -8,6 +8,7 @@ import { HUDBar } from "@/components/cockpit/HUDBar";
 import { SettingsPanel } from "@/components/cockpit/SettingsPanel";
 import { AppCenter } from "@/components/cockpit/AppCenter";
 import { VehicleSettings } from "@/components/cockpit/VehicleSettings";
+import { MusicApp } from "@/components/cockpit/MusicApp";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -34,6 +35,7 @@ function Cockpit() {
       <SettingsPanel />
       <AppCenter />
       <VehicleSettings />
+      <MusicApp />
       <Toaster position="top-center" />
     </div>
   );
