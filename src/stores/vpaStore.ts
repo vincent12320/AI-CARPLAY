@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { getChatHistory, saveChatMessage, clearChatHistory } from "@/lib/api/chat.functions";
+import { logDbError } from "@/lib/api/errors";
 
 export type AvatarState =
   | "idle"
@@ -38,6 +40,7 @@ type VPAState = {
   showFeedback: boolean;      // satisfaction card visible
   feedbackThanks: boolean;    // thank-you message shown
   panelOpen: boolean;         // settings panel
+  syncStatus: "idle" | "loading" | "synced" | "error";
   setOpen: (v: boolean) => void;
   setMinimized: (v: boolean) => void;
   setMode: (m: VPAMode) => void;
@@ -52,6 +55,7 @@ type VPAState = {
   setFeedbackThanks: (v: boolean) => void;
   reset: () => void;
   togglePanel: () => void;
+  hydrateFromServer: () => Promise<void>;
 };
 
 export const useVPA = create<VPAState>((set) => ({
@@ -67,11 +71,16 @@ export const useVPA = create<VPAState>((set) => ({
   showFeedback: false,
   feedbackThanks: false,
   panelOpen: false,
+  syncStatus: "idle",
   setOpen: (v) => set({ open: v }),
   setMinimized: (v) => set({ minimized: v }),
   setMode: (m) => set({ mode: m }),
   setAvatar: (a) => set({ avatar: a }),
-  pushMessage: (m) => set((s) => ({ messages: [...s.messages, m] })),
+  pushMessage: (m) => {
+    set((s) => ({ messages: [...s.messages, m] }));
+    // fire-and-forget: 异步写入服务端，不阻塞 UI
+    saveChatMessage({ data: m }).catch((e) => logDbError("saveChatMessage", e));
+  },
   setStreaming: (s) => set({ streaming: s }),
   setSuggestions: (s) => set({ suggestions: s }),
   setSuggestionsLoading: (v) => set({ suggestionsLoading: v }),
@@ -79,7 +88,7 @@ export const useVPA = create<VPAState>((set) => ({
   resetRounds: () => set({ roundCount: 0 }),
   setShowFeedback: (v) => set({ showFeedback: v }),
   setFeedbackThanks: (v) => set({ feedbackThanks: v }),
-  reset: () =>
+  reset: () => {
     set({
       messages: [],
       streaming: "",
@@ -87,6 +96,20 @@ export const useVPA = create<VPAState>((set) => ({
       roundCount: 0,
       showFeedback: false,
       feedbackThanks: false,
-    }),
+    });
+    clearChatHistory().catch((e) => logDbError("clearChatHistory", e));
+  },
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
+  hydrateFromServer: async () => {
+    const current = useVPA.getState();
+    if (current.syncStatus === "synced" || current.syncStatus === "loading") return;
+    set({ syncStatus: "loading" });
+    try {
+      const history = await getChatHistory({ data: { limit: 200 } });
+      set({ messages: history, syncStatus: "synced" });
+    } catch (e) {
+      logDbError("hydrateVPA", e);
+      set({ syncStatus: "error" });
+    }
+  },
 }));

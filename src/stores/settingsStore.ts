@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { getMemories, addMemory as addServerMemory, removeMemory as removeServerMemory, clearMemories as clearServerMemories } from "@/lib/api/memory.functions";
+import { logDbError } from "@/lib/api/errors";
 
 export type AIConfig = {
   baseURL: string;
@@ -50,6 +52,7 @@ type SettingsState = {
   removeMemory: (id: string) => void;
   clearMemories: () => void;
   setPersona: (p: Partial<Persona>) => void;
+  hydrateMemoriesFromServer: () => Promise<void>;
 };
 
 const DEFAULT_INTENT_RULES: IntentRule[] = [
@@ -83,16 +86,43 @@ export const useSettings = create<SettingsState>()(
       setDify: (p) => set((s) => ({ dify: { ...s.dify, ...p } })),
       setIntentRules: (r) => set({ intentRules: r }),
       setMemoryEnabled: (v) => set({ memoryEnabled: v }),
-      addMemory: (key, value) =>
+      addMemory: (key, value) => {
+        const id = crypto.randomUUID();
+        const now = Date.now();
         set((s) => ({
-          memories: [
-            ...s.memories,
-            { id: crypto.randomUUID(), key, value, createdAt: Date.now() },
-          ],
-        })),
-      removeMemory: (id) => set((s) => ({ memories: s.memories.filter((m) => m.id !== id) })),
-      clearMemories: () => set({ memories: [] }),
+          memories: [...s.memories, { id, key, value, createdAt: now }],
+        }));
+        // fire-and-forget 同步到服务端
+        addServerMemory({ data: { key, value } }).catch((e) => logDbError("addMemory", e));
+      },
+      removeMemory: (id) => {
+        set((s) => ({ memories: s.memories.filter((m) => m.id !== id) }));
+        removeServerMemory({ data: { id } }).catch((e) => logDbError("removeMemory", e));
+      },
+      clearMemories: () => {
+        set({ memories: [] });
+        clearServerMemories().catch((e) => logDbError("clearMemories", e));
+      },
       setPersona: (p) => set((s) => ({ persona: { ...s.persona, ...p } })),
+      hydrateMemoriesFromServer: async () => {
+        try {
+          const serverMemories = await getMemories();
+          if (serverMemories.length > 0) {
+            // 服务端有数据 → 覆盖本地
+            set({ memories: serverMemories });
+          } else {
+            // 服务端为空 → 将本地数据迁移到服务端
+            const localMemories = useSettings.getState().memories;
+            if (localMemories.length > 0) {
+              for (const m of localMemories) {
+                await addServerMemory({ data: { key: m.key, value: m.value } }).catch(() => {});
+              }
+            }
+          }
+        } catch (e) {
+          logDbError("hydrateMemories", e);
+        }
+      },
     }),
     { name: "ispace-settings" },
   ),

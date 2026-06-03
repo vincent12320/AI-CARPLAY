@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { Wallpaper } from "@/components/cockpit/Wallpaper";
@@ -9,6 +10,10 @@ import { SettingsPanel } from "@/components/cockpit/SettingsPanel";
 import { AppCenter } from "@/components/cockpit/AppCenter";
 import { VehicleSettings } from "@/components/cockpit/VehicleSettings";
 import { MusicApp } from "@/components/cockpit/MusicApp";
+import { useVPA } from "@/stores/vpaStore";
+import { useSettings } from "@/stores/settingsStore";
+import { useMusic } from "@/stores/musicStore";
+import { useVehicle } from "@/stores/vehicleStore";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,6 +28,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Cockpit() {
+  // 首次挂载时从服务端同步数据
+  useEffect(() => {
+    useVPA.getState().hydrateFromServer();
+    useSettings.getState().hydrateMemoriesFromServer();
+    useMusic.getState().hydrateFromServer();
+    useVehicle.getState().hydrateFromServer();
+  }, []);
+
   return (
     <div className="relative flex h-screen w-screen flex-col overflow-hidden">
       <Wallpaper />

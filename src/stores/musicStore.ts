@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { getFavorites, addFavorite, removeFavorite } from "@/lib/api/music.functions";
+import { logDbError } from "@/lib/api/errors";
 
 export type Track = {
   id: string;
@@ -25,6 +27,7 @@ type MusicState = {
   playing: boolean;
   progress: number;     // seconds played for current track
   favorites: string[];
+  syncStatus: "idle" | "loading" | "synced" | "error";
   current: () => Track;
   play: () => void;
   pause: () => void;
@@ -35,6 +38,7 @@ type MusicState = {
   setProgress: (s: number) => void;
   tick: () => void;
   toggleFavorite: (id: string) => void;
+  hydrateFromServer: () => Promise<void>;
 };
 
 export const useMusic = create<MusicState>((set, get) => ({
@@ -42,6 +46,7 @@ export const useMusic = create<MusicState>((set, get) => ({
   playing: true,
   progress: 140,
   favorites: ["t1", "t4"],
+  syncStatus: "idle",
   current: () => TRACKS[get().index],
   play: () => set({ playing: true }),
   pause: () => set({ playing: false }),
@@ -62,12 +67,44 @@ export const useMusic = create<MusicState>((set, get) => ({
       }
       return { progress: st.progress + 1 };
     }),
-  toggleFavorite: (id) =>
-    set((s) => ({
-      favorites: s.favorites.includes(id)
-        ? s.favorites.filter((f) => f !== id)
-        : [...s.favorites, id],
-    })),
+  toggleFavorite: (id) => {
+    const state = get();
+    const isFav = state.favorites.includes(id);
+    set({
+      favorites: isFav
+        ? state.favorites.filter((f) => f !== id)
+        : [...state.favorites, id],
+    });
+    // fire-and-forget 同步到服务端
+    if (isFav) {
+      removeFavorite({ data: { trackId: id } }).catch((e) => logDbError("removeFavorite", e));
+    } else {
+      addFavorite({ data: { trackId: id } }).catch((e) => logDbError("addFavorite", e));
+    }
+  },
+  hydrateFromServer: async () => {
+    const current = useMusic.getState();
+    if (current.syncStatus === "synced" || current.syncStatus === "loading") return;
+    set({ syncStatus: "loading" });
+    try {
+      const serverFavs = await getFavorites();
+      if (serverFavs.length > 0) {
+        set({ favorites: serverFavs, syncStatus: "synced" });
+      } else {
+        // 迁移本地收藏到服务端
+        const localFavs = current.favorites;
+        if (localFavs.length > 0) {
+          for (const id of localFavs) {
+            await addFavorite({ data: { trackId: id } }).catch(() => {});
+          }
+        }
+        set({ syncStatus: "synced" });
+      }
+    } catch (e) {
+      logDbError("hydrateMusic", e);
+      set({ syncStatus: "error" });
+    }
+  },
 }));
 
 export function fmtTime(sec: number) {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, Minus, Mic, Send, Sparkles, X } from "lucide-react";
+import { ChevronDown, Mic, Send, Sparkles, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useVPA, AVATAR_CYCLE } from "@/stores/vpaStore";
@@ -8,7 +8,6 @@ import { mockReply, streamChat } from "@/lib/llm";
 import { getRecognizer, isSpeechSupported } from "@/lib/speech";
 import { detectIntent, suggestFollowups } from "@/lib/intent";
 import { VPAAvatar } from "./VPAAvatar";
-import { VPAMinimized } from "./VPAMinimized";
 import { FeedbackCard, matchFeedbackVoice, type FeedbackChoice } from "./FeedbackCard";
 
 export function VPAPanel() {
@@ -165,8 +164,20 @@ export function VPAPanel() {
     ask(t);
   }
 
-  if (!open) return null;
-  if (minimized) return <VPAMinimized />;
+  // 悬浮态：仅显示 VPA 头像，不遮挡背景
+  if (!open || minimized) {
+    return (
+      <div className="pointer-events-auto fixed left-1/2 top-4 z-40 -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-300">
+        <button
+          onClick={() => { setOpen(true); setMinimized(false); }}
+          className="transition hover:scale-110 active:scale-95"
+          aria-label="打开 VPA"
+        >
+          <VPAAvatar state={avatar} size={52} />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -182,10 +193,7 @@ export function VPAPanel() {
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <span>已完成思考</span>
             <ChevronDown className="h-3 w-3" />
-            <button onClick={() => setMinimized(true)} className="ml-2 rounded-full p-1 hover:bg-black/5" aria-label="最小化">
-              <Minus className="h-3.5 w-3.5" />
-            </button>
-            <button onClick={() => setOpen(false)} className="rounded-full p-1 hover:bg-black/5" aria-label="关闭">
+            <button onClick={() => setOpen(false)} className="ml-2 rounded-full p-1 hover:bg-black/5" aria-label="关闭">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>

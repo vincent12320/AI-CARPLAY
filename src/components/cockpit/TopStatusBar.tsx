@@ -5,11 +5,19 @@ import { useVPA } from "@/stores/vpaStore";
 export function TopStatusBar() {
   const [now, setNow] = useState(() => fmtTime(new Date()));
   const togglePanel = useVPA((s) => s.togglePanel);
+  const open = useVPA((s) => s.open);
+  const setOpen = useVPA((s) => s.setOpen);
+  const setMinimized = useVPA((s) => s.setMinimized);
 
   useEffect(() => {
     const t = setInterval(() => setNow(fmtTime(new Date())), 30_000);
     return () => clearInterval(t);
   }, []);
+
+  const handleOpenVPA = () => {
+    setOpen(true);
+    setMinimized(false);
+  };
 
   return (
     <div className="flex h-[52px] w-full items-center justify-between px-5 text-white">
@@ -39,7 +47,10 @@ export function TopStatusBar() {
         >
           <Settings className="h-4 w-4" />
         </button>
-        <Mic className="h-4 w-4 opacity-60" />
+        <Mic
+          className={`h-4 w-4 cursor-pointer transition ${open ? "opacity-60" : "opacity-100 text-brand animate-pulse"}`}
+          onClick={handleOpenVPA}
+        />
       </div>
     </div>
   );
