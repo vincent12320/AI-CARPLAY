@@ -31,25 +31,16 @@ export function HUDBar() {
       <div className="flex items-center gap-2">
         <TempControl value={tempLeft} onChange={setTempLeft} />
 
-        <HudPopover trigger={
-          <button className="flex items-center gap-1 rounded-full px-2 py-1 text-xs hover:bg-white/10">
-            <Snowflake className="h-4 w-4" /><span>{fanSpeed}</span>
-          </button>
-        }>
+        <HudPopover
+          triggerClass="flex items-center gap-1 rounded-full px-2 py-1 text-xs hover:bg-white/10"
+          trigger={<><Snowflake className="h-4 w-4" /><span>{fanSpeed}</span></>}
+        >
           <ACPanel fanSpeed={fanSpeed} setFanSpeed={setFanSpeed} />
         </HudPopover>
 
-        <HudPopover trigger={<IconBtn><Wind className="h-4 w-4" /></IconBtn>}>
-          <AirflowPanel />
-        </HudPopover>
-
-        <HudPopover trigger={<IconBtn><Fan className="h-4 w-4" /></IconBtn>}>
-          <CirculationPanel />
-        </HudPopover>
-
-        <HudPopover trigger={<IconBtn><Armchair className="h-4 w-4" /></IconBtn>}>
-          <SeatPanel />
-        </HudPopover>
+        <HudPopover trigger={<Wind className="h-4 w-4" />}><AirflowPanel /></HudPopover>
+        <HudPopover trigger={<Fan className="h-4 w-4" />}><CirculationPanel /></HudPopover>
+        <HudPopover trigger={<Armchair className="h-4 w-4" />}><SeatPanel /></HudPopover>
 
         <Icon onClick={toggleLocked}>{locked ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}</Icon>
         <TempControl value={tempRight} onChange={setTempRight} />
@@ -57,18 +48,12 @@ export function HUDBar() {
 
       {/* Right: shortcuts */}
       <div className="flex items-center gap-1.5">
-        <HudPopover trigger={<IconBtn><Home className="h-4 w-4" /></IconBtn>}>
-          <ScenePanel />
-        </HudPopover>
-        <HudPopover trigger={<IconBtn className="bg-success text-white hover:bg-success/90"><Phone className="h-4 w-4" /></IconBtn>}>
+        <HudPopover trigger={<Home className="h-4 w-4" />}><ScenePanel /></HudPopover>
+        <HudPopover trigger={<Phone className="h-4 w-4" />} triggerClass="grid h-8 w-8 place-items-center rounded-full bg-success text-white transition hover:bg-success/90">
           <PhonePanel />
         </HudPopover>
-        <HudPopover trigger={<IconBtn><Camera className="h-4 w-4" /></IconBtn>}>
-          <CameraPanel />
-        </HudPopover>
-        <HudPopover trigger={<IconBtn><Volume2 className="h-4 w-4" /></IconBtn>}>
-          <VolumePanel />
-        </HudPopover>
+        <HudPopover trigger={<Camera className="h-4 w-4" />}><CameraPanel /></HudPopover>
+        <HudPopover trigger={<Volume2 className="h-4 w-4" />}><VolumePanel /></HudPopover>
       </div>
     </div>
   );
@@ -76,10 +61,14 @@ export function HUDBar() {
 
 /* ---------- popover scaffolding ---------- */
 
-function HudPopover({ trigger, children }: { trigger: React.ReactNode; children: React.ReactNode }) {
+function HudPopover({ trigger, triggerClass, children }: { trigger: React.ReactNode; triggerClass?: string; children: React.ReactNode }) {
   return (
     <Popover>
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverTrigger asChild>
+        <button className={triggerClass ?? "grid h-8 w-8 place-items-center rounded-full transition hover:bg-white/15"}>
+          {trigger}
+        </button>
+      </PopoverTrigger>
       <PopoverContent
         side="top"
         sideOffset={12}
