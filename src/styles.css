@@ -178,6 +178,24 @@
 }
 .avatar-fade { animation: fade-in-soft 0.3s ease-out; }
 
+/* ===== Expressive avatar motion ===== */
+@keyframes avatar-bounce {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+}
+@keyframes avatar-pop {
+  0% { transform: scale(0.85); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes sparkle {
+  0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.3; }
+  50% { transform: scale(1.1) rotate(20deg); opacity: 1; }
+}
+.animate-avatar-bounce { animation: avatar-bounce 1.4s ease-in-out infinite; }
+.animate-avatar-pop { animation: avatar-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-sparkle { animation: sparkle 1.8s ease-in-out infinite; }
+
 /* ===== Overlay / modal animations ===== */
 @keyframes overlay-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modal-pop {
