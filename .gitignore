@@ -34,3 +34,4 @@ drizzle/meta/
 *.njsproj
 *.sln
 *.sw?
+.vercel
