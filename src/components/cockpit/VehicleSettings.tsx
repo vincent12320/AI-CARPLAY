@@ -210,35 +210,40 @@ function TabContent({ tab }: { tab: string }) {
 }
 
 function CommonTab() {
+  const personal: { label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { label: "后视镜调节", icon: CarFront },
+    { label: "方向盘调节", icon: Disc3 },
+    { label: "方向盘快捷键", icon: Command },
+  ];
   return (
     <div className="space-y-6">
       <div>
         <GroupTitle>控制</GroupTitle>
         <div className="grid grid-cols-2 gap-3">
-          <ControlCard title="后备箱" status="关闭" />
-          <ControlCard title="充电口" status="故障" statusColor="text-destructive" />
-          <ControlCard title="后备箱" status="已开启" statusColor="text-success" />
-          <ControlCard title="充电口" status="异常" statusColor="text-amber-500" />
-          <ControlCard title="车窗调节" status="点击调节" />
-          <ControlCard title="遮阳帘调节" status="点击调节" />
+          <ControlCard title="后备箱" status="关闭" icon={Package} iconColor="text-slate-500" />
+          <ControlCard title="充电口" status="故障" statusColor="text-destructive" icon={PlugZap} iconColor="text-destructive" />
+          <ControlCard title="后备箱" status="已开启" statusColor="text-success" icon={PackageOpen} iconColor="text-success" />
+          <ControlCard title="充电口" status="异常" statusColor="text-amber-500" icon={PlugZap} iconColor="text-amber-500" />
+          <ControlCard title="车窗调节" status="点击调节" icon={AppWindow} iconColor="text-brand" />
+          <ControlCard title="遮阳帘调节" status="点击调节" icon={Blinds} iconColor="text-brand" />
         </div>
       </div>
       <div>
         <GroupTitle>个人设置</GroupTitle>
         <div className="grid grid-cols-3 gap-3">
-          {["后视镜调节", "方向盘调节", "方向盘快捷键"].map((t) => (
+          {personal.map(({ label, icon: Icon }) => (
             <button
-              key={t}
-              onClick={() => toast.success(t)}
+              key={label}
+              onClick={() => toast.success(label)}
               className="flex flex-col items-center gap-2 rounded-2xl bg-white/70 py-5 shadow-sm ring-1 ring-black/5 transition hover:bg-white"
             >
-              <Car className="h-5 w-5 text-brand" />
-              <span className="text-sm font-medium text-foreground">{t}</span>
+              <Icon className="h-5 w-5 text-brand" />
+              <span className="text-sm font-medium text-foreground">{label}</span>
             </button>
           ))}
         </div>
         <div className="mt-3">
-          <ControlCard title="个性化配置" status="我是副标题，支持自定义车辆偏好设置" />
+          <ControlCard title="个性化配置" status="我是副标题，支持自定义车辆偏好设置" icon={SlidersHorizontal} iconColor="text-brand" />
         </div>
       </div>
     </div>
