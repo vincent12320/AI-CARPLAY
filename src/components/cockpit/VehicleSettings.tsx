@@ -2,7 +2,8 @@ import { useState } from "react";
 import {
   Car, DoorOpen, Lightbulb, Armchair, BatteryFull, Disc3, ScanLine,
   Mic, Eye, Volume2, X, ChevronRight, Battery, Bell, Bluetooth, Wifi,
-  Signal, Video, User,
+  Video, User, Package, PackageOpen, PlugZap, AppWindow, Blinds,
+  CarFront, Command, SlidersHorizontal,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useUI } from "@/stores/uiStore";
