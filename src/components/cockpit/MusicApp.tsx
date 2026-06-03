@@ -1,11 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
-  X, Play, Pause, SkipBack, SkipForward, Heart, Repeat, Shuffle,
+  X, Play, Pause, SkipBack, SkipForward, Heart, Shuffle,
   ListMusic, Search, Radio, Flame, Sparkles, Music2,
 } from "lucide-react";
 import { useUI } from "@/stores/uiStore";
 import { useMusic, TRACKS, fmtTime, type Track } from "@/stores/musicStore";
-import { useState } from "react";
 
 const PLAYLISTS = [
   { title: "热门榜单", sub: "飙升音乐", cover: "linear-gradient(135deg,#a78bfa,#ec4899)" },
