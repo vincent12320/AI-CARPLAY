@@ -6,14 +6,18 @@ export type AvatarState =
   | "speaking"
   | "happy"
   | "focus"
-  | "default";
+  | "default"
+  | "love"
+  | "wink"
+  | "surprised";
 
+// forms cycled through automatically when idle (emotional / fun variety)
 export const AVATAR_CYCLE: AvatarState[] = [
   "idle",
-  "thinking",
-  "speaking",
   "happy",
-  "focus",
+  "wink",
+  "love",
+  "surprised",
   "default",
 ];
 
