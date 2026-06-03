@@ -6,7 +6,7 @@ import type { AvatarState } from "@/stores/vpaStore";
 export function VPAAvatar({ state, size = 96 }: { state: AvatarState; size?: number }) {
   const color = useSettings((s) => s.persona.avatarColor);
 
-  const showCheeks = ["idle", "default", "happy", "love", "wink"].includes(state);
+  const showCheeks = ["idle", "default", "happy", "love", "wink", "sad"].includes(state);
   const bounce =
     state === "happy" || state === "love"
       ? "animate-avatar-bounce"
@@ -29,6 +29,9 @@ export function VPAAvatar({ state, size = 96 }: { state: AvatarState; size?: num
           <span className="absolute inset-0 rounded-full ring-2 ring-success/50 animate-happy-glow" />
           <span className="absolute inset-0 rounded-full ring-2 ring-success/30 animate-happy-glow [animation-delay:0.5s]" />
         </>
+      )}
+      {state === "sad" && (
+        <span className="absolute inset-0 rounded-full bg-muted-foreground/20 blur-sm animate-pulse" />
       )}
       {state === "thinking" && (
         <>
@@ -151,6 +154,14 @@ function Mouth({ size, state }: { size: number; state: AvatarState }) {
       />
     );
   }
+  if (state === "sad") {
+    return (
+      <div
+        className="absolute rounded-t-full border-t-[3px] border-white/70"
+        style={{ width: size * 0.22, height: size * 0.08, bottom: size * 0.18 }}
+      />
+    );
+  }
   return (
     <div
       className={cn("absolute rounded-full bg-white/90", state === "speaking" && "animate-mouth")}
@@ -190,6 +201,19 @@ function Eye({ size, state, side }: { size: number; state: AvatarState; side: "l
         className="rounded-t-full border-t-[3px] border-white"
         style={{ width: size * 0.16, height: size * 0.09 }}
       />
+    );
+  }
+  // sad = downward curved eyes (teary)
+  if (state === "sad") {
+    return (
+      <div
+        className="relative rounded-b-full border-b-[3px] border-white/70"
+        style={{ width: size * 0.16, height: size * 0.09 }}
+      >
+        <span
+          className="absolute -bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-blue-200/60"
+        />
+      </div>
     );
   }
   if (state === "surprised") {

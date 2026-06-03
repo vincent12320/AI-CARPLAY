@@ -7,6 +7,7 @@ export type AvatarState =
   | "thinking"
   | "speaking"
   | "happy"
+  | "sad"
   | "focus"
   | "default"
   | "love"
@@ -24,6 +25,7 @@ export const AVATAR_CYCLE: AvatarState[] = [
 ];
 
 export type VPAMode = "greeting" | "chat" | "intent";
+export type StreamingPhase = "idle" | "thinking" | "answering";
 
 export type ChatMsg = { role: "user" | "assistant"; content: string };
 
@@ -34,6 +36,7 @@ type VPAState = {
   avatar: AvatarState;
   messages: ChatMsg[];
   streaming: string;          // partial assistant content currently streaming
+  streamingPhase: StreamingPhase; // thinking → answering → idle
   suggestions: string[];
   suggestionsLoading: boolean;
   roundCount: number;         // completed user+assistant rounds since last feedback
@@ -47,6 +50,7 @@ type VPAState = {
   setAvatar: (a: AvatarState) => void;
   pushMessage: (m: ChatMsg) => void;
   setStreaming: (s: string) => void;
+  setStreamingPhase: (p: StreamingPhase) => void;
   setSuggestions: (s: string[]) => void;
   setSuggestionsLoading: (v: boolean) => void;
   incrementRound: () => void;
@@ -65,6 +69,7 @@ export const useVPA = create<VPAState>((set) => ({
   avatar: "idle",
   messages: [],
   streaming: "",
+  streamingPhase: "idle",
   suggestions: ["今天天气如何", "去公司怎么走", "放点轻松的音乐"],
   suggestionsLoading: false,
   roundCount: 0,
@@ -82,6 +87,7 @@ export const useVPA = create<VPAState>((set) => ({
     saveChatMessage({ data: m }).catch((e) => logDbError("saveChatMessage", e));
   },
   setStreaming: (s) => set({ streaming: s }),
+  setStreamingPhase: (p) => set({ streamingPhase: p }),
   setSuggestions: (s) => set({ suggestions: s }),
   setSuggestionsLoading: (v) => set({ suggestionsLoading: v }),
   incrementRound: () => set((s) => ({ roundCount: s.roundCount + 1 })),
@@ -92,6 +98,7 @@ export const useVPA = create<VPAState>((set) => ({
     set({
       messages: [],
       streaming: "",
+      streamingPhase: "idle",
       mode: "greeting",
       roundCount: 0,
       showFeedback: false,

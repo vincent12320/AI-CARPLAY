@@ -128,6 +128,10 @@
   0%, 100% { transform: scaleY(0.3); }
   50% { transform: scaleY(1); }
 }
+@keyframes eq-bar {
+  0%, 100% { transform: scaleY(0.2); }
+  50% { transform: scaleY(1); }
+}
 @keyframes mouth-talk {
   0%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(0.4); }
@@ -144,6 +148,7 @@
 .animate-float-soft { animation: float-soft 3.5s ease-in-out infinite; }
 .animate-blink { animation: blink 5s infinite; transform-origin: center; }
 .animate-mouth { animation: mouth-talk 0.4s ease-in-out infinite; transform-origin: center; }
+.animate-eq { animation: eq-bar 0.8s ease-in-out infinite; transform-origin: bottom; }
 
 /* ===== Vinyl record ===== */
 @keyframes vinyl-spin { to { transform: rotate(360deg); } }

@@ -15,8 +15,8 @@ export function MusicCard() {
   }, []);
 
   return (
-    <div className="flex h-full items-center gap-3 rounded-2xl bg-white/95 p-3 shadow-md ring-1 ring-black/5">
-      <button onClick={openMusic} title="打开音乐">
+    <div className="flex h-full items-center gap-3 rounded-2xl bg-gradient-to-br from-white/95 to-indigo-50/70 p-3 shadow-md ring-1 ring-black/5 backdrop-blur-sm">
+      <button onClick={openMusic} title="打开音乐" className="shrink-0">
         <Vinyl cover={t.cover} playing={playing} key={index} />
       </button>
       <div className="flex flex-1 flex-col justify-between overflow-hidden">
@@ -24,17 +24,20 @@ export function MusicCard() {
           <div className="truncate text-sm font-semibold">{t.title}</div>
           <div className="truncate text-[11px] text-muted-foreground">{t.artist}</div>
         </button>
-        <div className="flex items-center gap-1 text-foreground">
-          <button onClick={prev} className="rounded-full p-1.5 hover:bg-black/5">
+        <div className="flex items-center gap-1">
+          <button onClick={prev} className="rounded-full p-1.5 text-muted-foreground transition hover:bg-black/5 hover:text-foreground">
             <SkipBack className="h-3.5 w-3.5" />
           </button>
-          <button onClick={toggle} className="rounded-full bg-foreground p-1.5 text-background hover:opacity-90">
-            {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+          <button
+            onClick={toggle}
+            className="rounded-full bg-brand p-[7px] text-white shadow-sm transition hover:bg-brand/90 hover:shadow-md active:scale-95"
+          >
+            {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 fill-white" />}
           </button>
-          <button onClick={next} className="rounded-full p-1.5 hover:bg-black/5">
+          <button onClick={next} className="rounded-full p-1.5 text-muted-foreground transition hover:bg-black/5 hover:text-foreground">
             <SkipForward className="h-3.5 w-3.5" />
           </button>
-          <button onClick={openMusic} className="ml-auto rounded-full p-1.5 hover:bg-black/5" title="音乐列表">
+          <button onClick={openMusic} className="ml-auto rounded-full p-1.5 text-muted-foreground transition hover:bg-black/5 hover:text-foreground" title="音乐列表">
             <ListMusic className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -46,8 +49,11 @@ export function MusicCard() {
 function Vinyl({ cover, playing }: { cover: string; playing: boolean }) {
   return (
     <div className="relative h-14 w-14 shrink-0">
+      {playing && (
+        <span className="absolute -inset-1 rounded-full bg-brand/20 blur-sm animate-pulse" />
+      )}
       <div
-        className="h-14 w-14 rounded-full animate-vinyl shadow-md"
+        className="relative h-14 w-14 rounded-full animate-vinyl shadow-lg"
         style={{
           animationPlayState: playing ? "running" : "paused",
           background:
