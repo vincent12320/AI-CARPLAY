@@ -141,7 +141,7 @@ function Segmented({ label, options, def = 0 }: { label: string; options: string
   );
 }
 
-function ControlCard({ title, status, statusColor = "text-muted-foreground" }: { title: string; status: string; statusColor?: string }) {
+function ControlCard({ title, status, statusColor = "text-muted-foreground", icon: Icon = Car, iconColor = "text-brand" }: { title: string; status: string; statusColor?: string; icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>; iconColor?: string }) {
   return (
     <button
       onClick={() => toast.success(`${title}`)}
@@ -152,7 +152,7 @@ function ControlCard({ title, status, statusColor = "text-muted-foreground" }: {
         <p className={`mt-1 text-xs ${statusColor}`}>{status}</p>
       </div>
       <div className="grid h-12 w-16 place-items-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200">
-        <Car className="h-6 w-6 text-slate-400" strokeWidth={1.4} />
+        <Icon className={`h-6 w-6 ${iconColor}`} strokeWidth={1.6} />
       </div>
     </button>
   );
