@@ -17,6 +17,6 @@ export default defineConfig({
   },
   // 强制启用 Nitro，使用 Vercel preset（本地开发不需要，仅构建时）
   nitro: {
-    preset: "cloudflare_pages",
+    preset: "cloudflare",
   },
 });
